@@ -1,0 +1,27 @@
+name: Build TSvnPwd
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest  # 需要 Windows 环境编译
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 6.0.x  # 根据项目需要调整版本
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Publish Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: TSvnPwd-Build
+        path: ./bin/Release/net6.0-windows/
