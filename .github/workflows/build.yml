@@ -1,32 +1,22 @@
 name: Build TSvnPwd
-
 on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
-
 jobs:
   build:
-    runs-on: windows-latest  # 使用 Windows 环境，因为要生成 .exe 文件
-
+    runs-on: windows-latest
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    - name: Setup MSBuild
-      uses: microsoft/setup-msbuild@v2  # 设置 MSBuild 工具，用于编译 C# 项目
-
-    - name: Restore NuGet packages
-      run: nuget restore TSvnPwd.sln  # 如果有解决方案文件需要还原 NuGet 包
-
-    - name: Build the project
-      run: msbuild TSvnPwd.sln /p:Configuration=Release /p:Platform="Any CPU"  # 编译项目
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v3
-      with:
-        name: TSvnPwd-Executable
-        path: bin/Release/TSvnPwd.exe  # 指定生成的 .exe 文件路径
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+      - name: Restore NuGet packages
+        run: nuget restore TSvnPwd.sln
+      - name: Build the project
+        run: msbuild TSvnPwd.sln /p:Configuration=Release /p:Platform="Any CPU"
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TSvnPwd-Executable
+          path: bin/Release/TSvnPwd.exe
