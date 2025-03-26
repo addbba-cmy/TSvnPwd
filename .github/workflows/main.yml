@@ -1,12 +1,7 @@
 name: Build TSvnPwd
 
 on:
-  push:
-    branches:
-      - main # or your default branch
-  pull_request:
-    branches:
-      - main # or your default branch
+  workflow_dispatch:
 
 jobs:
   build:
