@@ -1,27 +1,66 @@
+# TSvnPwd project GitHub Actions build configuration
+
 name: Build TSvnPwd
 
-on: [push]
+on:
+  push:
+    branches:
+      - main # or your default branch
+  pull_request:
+    branches:
+      - main # or your default branch
 
 jobs:
   build:
-    runs-on: windows-latest  # 需要 Windows 环境编译
+    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        configuration: [Release, Debug]
+        platform: [x86]
+
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v3
+      uses: actions/checkout@v3
       with:
-        dotnet-version: 6.0.x  # 根据项目需要调整版本
+        fetch-depth: 0 # Required for accurate git hash
 
-    - name: Restore dependencies
-      run: dotnet restore
+    - name: Setup MSBuild
+      uses: microsoft/setup-msbuild@v1.1
 
-    - name: Build
-      run: dotnet build --configuration Release --no-restore
+    - name: Set GIT_HASH environment variable
+      run: |
+        $GIT_HASH = git rev-parse --short HEAD
+        echo "GIT_HASH=$GIT_HASH" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
-    - name: Publish Artifact
+    - name: Build solution
+      run: |
+        msbuild TSvnPwd.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /verbosity:minimal
+
+    - name: Set Assembly Info
+      run: |
+        $buildNumber = "${{ github.run_number }}"
+        $gitHash = $env:GIT_HASH
+        $assemblyVersion = "1.0.0.$buildNumber"
+        $assemblyFileVersion = "1.0.0.$buildNumber"
+        $assemblyInformationalVersion = "1.0.0-b$buildNumber-$gitHash"
+
+        $assemblyInfoFiles = Get-ChildItem -Path . -Recurse -Filter AssemblyInfo.cs
+
+        foreach ($file in $assemblyInfoFiles) {
+          (Get-Content $file.FullName) | ForEach-Object {
+            $_ -replace '\[assembly: AssemblyVersion\(".*"\)\]', "[assembly: AssemblyVersion(\"$assemblyVersion\")]" `
+               -replace '\[assembly: AssemblyFileVersion\(".*"\)\]', "[assembly: AssemblyFileVersion(\"$assemblyFileVersion\")]" `
+               -replace '\[assembly: AssemblyInformationalVersion\(".*"\)\]', "[assembly: AssemblyInformationalVersion(\"$assemblyInformationalVersion\")]"
+          } | Set-Content $file.FullName
+        }
+
+    - name: Rebuild after AssemblyInfo change
+      run: |
+        msbuild TSvnPwd.sln /p:Configuration=${{ matrix.configuration }} /p:Platform=${{ matrix.platform }} /verbosity:minimal
+
+    - name: Upload artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: TSvnPwd-Build
-        path: ./bin/Release/net6.0-windows/
+        name: TSvnPwd-${{ matrix.configuration }}-${{ matrix.platform }}
+        path: bin/${{ matrix.configuration }}/TSvnPwd.exe
