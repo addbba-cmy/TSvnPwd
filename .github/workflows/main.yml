@@ -1,5 +1,3 @@
-# TSvnPwd project GitHub Actions build configuration
-
 name: Build TSvnPwd
 
 on:
